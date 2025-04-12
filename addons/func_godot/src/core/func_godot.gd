@@ -70,8 +70,16 @@ func gather_texture_surfaces(texture_name: String) -> Dictionary:
 	const MFlags = FuncGodotMapData.FuncGodotEntityMetadataInclusionFlags
 	sg.metadata_skip_flags = MFlags.TEXTURES | MFlags.COLLISION_SHAPE_TO_FACE_RANGE_MAP
 	sg.set_texture_filter(texture_name)
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+	'''
 	sg.set_clip_filter_texture(map_settings.clip_texture)
 	sg.set_skip_filter_texture(map_settings.skip_texture)
+	'''
+	for skip_texture in map_settings.skip_texture_list:
+		sg.add_skip_filter_texture(skip_texture);
+	for clip_texture in map_settings.clip_texture_list:
+		sg.add_clip_filter_texture(clip_texture);
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
 	sg.set_origin_filter_texture(map_settings.origin_texture)
 	sg.run()
 	return {
@@ -92,7 +100,13 @@ func gather_entity_concave_collision_surfaces(entity_idx: int) -> void:
 	surface_gatherer.entity_filter_idx = entity_idx
 	const MFlags = FuncGodotMapData.FuncGodotEntityMetadataInclusionFlags
 	surface_gatherer.metadata_skip_flags |= MFlags.COLLISION_SHAPE_TO_FACE_RANGE_MAP
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+	'''
 	surface_gatherer.set_skip_filter_texture(map_settings.skip_texture)
+	'''
+	for skip_texture in map_settings.skip_texture_list:
+		surface_gatherer.add_skip_filter_texture(skip_texture);
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
 	surface_gatherer.set_origin_filter_texture(map_settings.origin_texture)
 	surface_gatherer.run()
 

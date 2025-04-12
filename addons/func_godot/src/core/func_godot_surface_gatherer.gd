@@ -5,8 +5,14 @@ var map_settings: FuncGodotMapSettings
 var split_type: SurfaceSplitType = SurfaceSplitType.NONE
 var entity_filter_idx: int = -1
 var texture_filter_idx: int = -1
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+'''
 var clip_filter_texture_idx: int
 var skip_filter_texture_idx: int
+'''
+var skip_filter_texture_idx_list: Array[int] = []
+var clip_filter_texture_idx_list: Array[int] = []
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
 var origin_filter_texture_idx: int
 var metadata_skip_flags: int
 
@@ -20,11 +26,21 @@ func _init(in_map_data: FuncGodotMapData, in_map_settings: FuncGodotMapSettings)
 func set_texture_filter(texture_name: String) -> void:
 	texture_filter_idx = map_data.find_texture(texture_name)
 
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+'''
 func set_clip_filter_texture(texture_name: String) -> void:
 	clip_filter_texture_idx = map_data.find_texture(texture_name)
 	
 func set_skip_filter_texture(texture_name: String) -> void:
 	skip_filter_texture_idx = map_data.find_texture(texture_name)
+'''
+
+func add_skip_filter_texture(texture_name: String) -> void:
+	skip_filter_texture_idx_list.append(map_data.find_texture(texture_name))
+	
+func add_clip_filter_texture(texture_name: String) -> void:
+	clip_filter_texture_idx_list.append(map_data.find_texture(texture_name))
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
 
 func set_origin_filter_texture(texture_name: String) -> void:
 	origin_filter_texture_idx = map_data.find_texture(texture_name)
@@ -41,6 +57,8 @@ func filter_face(entity_idx: int, brush_idx: int, face_idx: int) -> bool:
 	if face_geo.vertices.size() < 3:
 		return true
 
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+	'''
 	# Omit faces textured with Clip
 	if clip_filter_texture_idx != -1 and face.texture_idx == clip_filter_texture_idx:
 		return true
@@ -48,6 +66,13 @@ func filter_face(entity_idx: int, brush_idx: int, face_idx: int) -> bool:
 	# Omit faces textured with Skip
 	if skip_filter_texture_idx != -1 and face.texture_idx == skip_filter_texture_idx:
 		return true
+	'''
+	if clip_filter_texture_idx_list.size() > 0 and clip_filter_texture_idx_list.count(face.texture_idx) > 0:
+		return true
+	
+	if skip_filter_texture_idx_list.size() > 0 and skip_filter_texture_idx_list.count(face.texture_idx) > 0:
+		return true
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
 
 	# Omit faces textured with Origin
 	if origin_filter_texture_idx != -1 and face.texture_idx == origin_filter_texture_idx:
@@ -205,8 +230,14 @@ func reset_params() -> void:
 	split_type = SurfaceSplitType.NONE
 	entity_filter_idx = -1
 	texture_filter_idx = -1
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+	'''
 	clip_filter_texture_idx = -1
 	skip_filter_texture_idx = -1
+	'''
+	clip_filter_texture_idx_list = [];
+	skip_filter_texture_idx_list = [];
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
 	metadata_skip_flags = FuncGodotMapData.FuncGodotEntityMetadataInclusionFlags.ENTITY_INDEX_RANGES
 
 # nested

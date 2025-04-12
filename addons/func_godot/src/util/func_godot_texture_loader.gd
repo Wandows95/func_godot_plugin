@@ -140,10 +140,18 @@ func create_material(texture_name: String) -> Material:
 			material.set_texture(PBR_SUFFIX_TEXTURES[suffix], tex)
 		
 	material_dict[material_path] = material
-	
+
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+	'''
+	Note: This portion is within the body below, comment in if expression
+	angers GDScript
+	and texture_name != map_settings.clip_texture 
+	and texture_name != map_settings.skip_texture 
+	'''
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
 	if (map_settings.save_generated_materials and material 
-		and texture_name != map_settings.clip_texture 
-		and texture_name != map_settings.skip_texture 
+		and map_settings.clip_texture_list.count(texture_name) == 0
+		and map_settings.skip_texture_list.count(texture_name) == 0
 		and texture.resource_path != "res://addons/func_godot/textures/default_texture.png"):
 		ResourceSaver.save(material, material_path)
 	
