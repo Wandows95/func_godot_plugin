@@ -55,10 +55,25 @@ const PBR_SUFFIX_PROPERTIES: Dictionary = {
 var map_settings: FuncGodotMapSettings = FuncGodotMapSettings.new()
 var texture_wad_resources: Array = []
 
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
+var material_config_steps: Array[FuncGodotMaterialConfigStep] = []
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
+
 # Overrides
 func _init(new_map_settings: FuncGodotMapSettings) -> void:
 	map_settings = new_map_settings
 	load_texture_wad_resources()
+	load_material_config_steps()
+
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
+func load_material_config_steps() -> void:
+	if(!map_settings):
+		return
+	for config_path in map_settings.material_config_steps:
+		material_config_steps.append(load(config_path).new())
+
+	print("Num Material Config Steps: " + str(material_config_steps.size()))
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
 
 # Business Logic
 func load_texture_wad_resources() -> void:
@@ -102,6 +117,14 @@ func create_material(texture_name: String) -> Material:
 	if not material_path in material_dict and (FileAccess.file_exists(material_path) or FileAccess.file_exists(material_path + ".remap")):
 		var loaded_material: Material = load(material_path)
 		if loaded_material:
+#### TASTYSPLEEN_CLASSY 4/12/205 ####
+			''' Allow config steps to configure material '''
+			for config_step in material_config_steps:
+				if(!config_step || !config_step.should_configure_material(map_settings, texture_name, loaded_material)):
+					continue;
+
+				config_step.configure_material(map_settings, texture_name, loaded_material)
+#### TASTYSPLEEN_CLASSY 4/12/205 ####
 			material_dict[material_path] = loaded_material
 	
 	# If material already exists, use it
@@ -139,6 +162,15 @@ func create_material(texture_name: String) -> Material:
 				material.set(enable_prop, true)
 			material.set_texture(PBR_SUFFIX_TEXTURES[suffix], tex)
 		
+#### TASTYSPLEEN_CLASSY 4/12/205 ####
+	''' Allow config steps to configure material '''
+	for config_step in material_config_steps:
+		if(!config_step || !config_step.should_configure_material(map_settings, texture_name, material)):
+			continue;
+			
+		config_step.configure_material(map_settings, texture_name, material)
+#### TASTYSPLEEN_CLASSY 4/12/205 ####
+
 	material_dict[material_path] = material
 
 #### TASTYSPLEEN_CLASSY 4/10/2025 ####

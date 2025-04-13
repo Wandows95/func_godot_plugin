@@ -44,6 +44,10 @@ var scale_factor: float = 0.03125
 
 #### TASTYSPLEEN_CLASSY 4/10/2025 ####
 
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
+@export var material_config_steps: Array[String];
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
+
 ## Optional path for the origin texture, relative to [member base_texture_dir]. Brush faces textured with the origin texture will have those faces removed from the generated [MeshInstance3D]. The bounds of these faces will be used to calculate the origin point of the entity.
 @export var origin_texture: String = "special/origin"
 
