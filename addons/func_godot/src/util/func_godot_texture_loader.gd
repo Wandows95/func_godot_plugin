@@ -117,14 +117,14 @@ func create_material(texture_name: String) -> Material:
 	if not material_path in material_dict and (FileAccess.file_exists(material_path) or FileAccess.file_exists(material_path + ".remap")):
 		var loaded_material: Material = load(material_path)
 		if loaded_material:
-#### TASTYSPLEEN_CLASSY 4/12/205 ####
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
 			''' Allow config steps to configure material '''
 			for config_step in material_config_steps:
 				if(!config_step || !config_step.should_configure_material(map_settings, texture_name, loaded_material)):
 					continue;
 
 				config_step.configure_material(map_settings, texture_name, loaded_material)
-#### TASTYSPLEEN_CLASSY 4/12/205 ####
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
 			material_dict[material_path] = loaded_material
 	
 	# If material already exists, use it
@@ -162,14 +162,14 @@ func create_material(texture_name: String) -> Material:
 				material.set(enable_prop, true)
 			material.set_texture(PBR_SUFFIX_TEXTURES[suffix], tex)
 		
-#### TASTYSPLEEN_CLASSY 4/12/205 ####
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
 	''' Allow config steps to configure material '''
 	for config_step in material_config_steps:
 		if(!config_step || !config_step.should_configure_material(map_settings, texture_name, material)):
 			continue;
 			
 		config_step.configure_material(map_settings, texture_name, material)
-#### TASTYSPLEEN_CLASSY 4/12/205 ####
+#### TASTYSPLEEN_CLASSY 4/12/2025 ####
 
 	material_dict[material_path] = material
 
