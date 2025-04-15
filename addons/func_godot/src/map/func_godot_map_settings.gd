@@ -19,6 +19,16 @@ var scale_factor: float = 0.03125
 ## Nodes will be named `"entity_" + name_property`. An entity's name should be unique, otherwise you may run into unexpected behavior.
 @export var entity_name_property: String = ""
 
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+@export_category("Worldspawn")
+
+## Consider this a fallback for handling maps whose geometry
+## is under worldspawn. 
+@export var chunk_worldspawn_geo: bool = true
+
+@export var worldspawn_geo_chunk_size: int = 512
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+
 @export_category("Textures")
 
 ## Base directory for textures. When building materials, FuncGodot will search this directory for texture files with matching names to the textures assigned to map brush faces.

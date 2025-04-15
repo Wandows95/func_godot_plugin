@@ -10,8 +10,14 @@ var map_settings: FuncGodotMapSettings = null:
 		map_settings = new
 var surface_gatherer:= FuncGodotSurfaceGatherer.new(map_data, map_settings)
 
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+'''
 func load_map(filename: String, keep_tb_groups: bool) -> void:
 	map_parser.load_map(filename, keep_tb_groups)
+'''
+func load_map(filename: String, keep_tb_groups: bool, chunk_worldspawn_geo: bool, worldspawn_geo_chunk_size: int) -> void:
+	map_parser.load_map(filename, keep_tb_groups, chunk_worldspawn_geo, worldspawn_geo_chunk_size)
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
 
 func get_texture_list() -> PackedStringArray:
 	var g_textures: PackedStringArray

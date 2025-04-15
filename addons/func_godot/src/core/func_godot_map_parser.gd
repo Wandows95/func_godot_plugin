@@ -17,10 +17,23 @@ var current_entity: FuncGodotMapData.FuncGodotEntity
 var map_data: FuncGodotMapData
 var _keep_tb_groups: bool = false
 
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####	
+var _chunk_worldspawn_geo: bool = false
+var _worldspawn_geo_chunk_size: int = 512
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####	
+
+
 func _init(in_map_data: FuncGodotMapData) -> void:
 	map_data = in_map_data
 
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####	
+'''
 func load_map(map_file: String, keep_tb_groups: bool) -> bool:
+'''
+func load_map(map_file: String, keep_tb_groups: bool, chunk_worldspawn_geo: bool, worldspawn_geo_chunk_size: int) -> bool:
+	_chunk_worldspawn_geo = chunk_worldspawn_geo
+	_worldspawn_geo_chunk_size = worldspawn_geo_chunk_size
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
 	current_face = FuncGodotMapData.FuncGodotFace.new()
 	current_brush = FuncGodotMapData.FuncGodotBrush.new()
 	current_entity = FuncGodotMapData.FuncGodotEntity.new()
@@ -276,7 +289,10 @@ func token(buf_str: String) -> void:
 			set_scope(FuncGodotMapParser.ParseScope.BRUSH)
 				
 func commit_entity() -> void:
-	if current_entity.properties.has('_tb_type') and map_data.entities.size() > 0:
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+# if current_entity.properties.has('_tb_type') and map_data.entities.size() > 0:
+#### TASTYSPLEEN_CLASS 4/15/2025 ####
+	if !_chunk_worldspawn_geo and current_entity.properties.has('_tb_type') and map_data.entities.size() > 0:
 		map_data.entities[0].brushes.append_array(current_entity.brushes)
 		current_entity.brushes.clear()
 		if !_keep_tb_groups:
@@ -286,8 +302,60 @@ func commit_entity() -> void:
 	var new_entity:= FuncGodotMapData.FuncGodotEntity.new()
 	new_entity.spawn_type = FuncGodotMapData.FuncGodotEntitySpawnType.ENTITY
 	new_entity.properties = current_entity.properties
+
+#### TASTYSPLEEN_CLASS 4/15/2025 ####
+	'''
 	new_entity.brushes = current_entity.brushes
+	'''
+	# Determine if we are ingesting a worldspawn entity
+	var is_worldspawn : bool = true
+	
+	if current_entity.properties.has("classname"):
+		if current_entity.properties["classname"] != "worldspawn":
+			is_worldspawn = false
+	else:
+		is_worldspawn = false
+
+	if !is_worldspawn or !_chunk_worldspawn_geo:
+		new_entity.brushes = current_entity.brushes
+#### TASTYSPLEEN_CLASS 4/15/2025 ####
+
 	map_data.entities.append(new_entity)
+
+#### TASTYSPLEEN_CLASS 4/15/2025 ####
+	if is_worldspawn and _chunk_worldspawn_geo:
+		var chunk_bucket : Dictionary = {}
+
+		# Iterate over ever brush in worldspawn
+		for brush in current_entity.brushes:
+			var found_bucket : bool = false
+			var brush_center : Vector3 = brush.find_center_naive()
+			# Determine which chunk this brush will be in
+			var chunk_x = int(brush_center.x/_worldspawn_geo_chunk_size)
+			var chunk_y = int(brush_center.y/_worldspawn_geo_chunk_size)
+			# Iterate over chunks
+			for chunk in chunk_bucket:
+				# Check if brush should be in chunk
+				if chunk[0] == chunk_x and chunk[1] == chunk_y:
+					chunk_bucket[chunk].append(brush)
+					found_bucket = true
+					break
+				# If no chunk found, make a new one
+			if !found_bucket:
+				chunk_bucket[[chunk_x, chunk_y]] = [brush]
+			found_bucket = false
+
+		# Convert chunk bucket into entities
+		for chunk in chunk_bucket:
+			var chunk_entity:= FuncGodotMapData.FuncGodotEntity.new()
+			chunk_entity.spawn_type = FuncGodotMapData.FuncGodotEntitySpawnType.ENTITY
+			chunk_entity.properties["classname"] = "func_geo"
+
+			for chunk_brush in chunk_bucket[chunk]:
+				chunk_entity.brushes.append(chunk_brush)
+
+			map_data.entities.append(chunk_entity)
+#### TASTYSPLEEN_CLASS 4/15/2025 ####
 	
 	current_entity = FuncGodotMapData.FuncGodotEntity.new()
 	

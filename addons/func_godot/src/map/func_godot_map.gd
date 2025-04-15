@@ -289,8 +289,14 @@ func remove_children() -> void:
 		child.queue_free()
 
 ## Parse and load [member map_file]
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+'''
 func load_map() -> void:
 	func_godot.load_map(_map_file_internal, map_settings.use_trenchbroom_groups_hierarchy)
+'''
+func load_map() -> void:
+	func_godot.load_map(_map_file_internal, map_settings.use_trenchbroom_groups_hierarchy, map_settings.chunk_worldspawn_geo, map_settings.worldspawn_geo_chunk_size)
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
 
 ## Get textures found in [member map_file]
 func fetch_texture_list() -> Array:

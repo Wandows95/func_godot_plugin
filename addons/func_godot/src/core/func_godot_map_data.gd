@@ -116,6 +116,26 @@ class FuncGodotBrush:
 	var faces: Array[FuncGodotFace]
 	var center: Vector3
 
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+	func find_center_naive() -> Vector3:
+		var x: float = 0;
+		var y: float = 0;
+		var z: float = 0
+		var num_points = 0;
+		for face in faces:
+			x += face.plane_points.v0.x
+			x += face.plane_points.v1.x
+			x += face.plane_points.v2.x
+			y += face.plane_points.v0.y
+			y += face.plane_points.v1.y
+			y += face.plane_points.v2.y
+			z += face.plane_points.v0.z
+			z += face.plane_points.v1.z
+			z += face.plane_points.v2.z
+			num_points += 3
+		return Vector3(x/(num_points), y/(num_points), z/(num_points))
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+
 class FuncGodotEntity:
 	var properties: Dictionary
 	var brushes: Array[FuncGodotBrush]
