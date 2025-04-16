@@ -20,6 +20,7 @@ var _keep_tb_groups: bool = false
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####	
 var _chunk_worldspawn_geo: bool = false
 var _worldspawn_geo_chunk_size: int = 512
+var _worldspawn_geo_entity_name: String = ""
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####	
 
 
@@ -30,9 +31,10 @@ func _init(in_map_data: FuncGodotMapData) -> void:
 '''
 func load_map(map_file: String, keep_tb_groups: bool) -> bool:
 '''
-func load_map(map_file: String, keep_tb_groups: bool, chunk_worldspawn_geo: bool, worldspawn_geo_chunk_size: int) -> bool:
+func load_map(map_file: String, keep_tb_groups: bool, chunk_worldspawn_geo: bool, worldspawn_geo_chunk_size: int, worldspawn_geo_entity_name: String) -> bool:
 	_chunk_worldspawn_geo = chunk_worldspawn_geo
 	_worldspawn_geo_chunk_size = worldspawn_geo_chunk_size
+	_worldspawn_geo_entity_name = worldspawn_geo_entity_name
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
 	current_face = FuncGodotMapData.FuncGodotFace.new()
 	current_brush = FuncGodotMapData.FuncGodotBrush.new()
@@ -349,7 +351,7 @@ func commit_entity() -> void:
 		for chunk in chunk_bucket:
 			var chunk_entity:= FuncGodotMapData.FuncGodotEntity.new()
 			chunk_entity.spawn_type = FuncGodotMapData.FuncGodotEntitySpawnType.ENTITY
-			chunk_entity.properties["classname"] = "func_geo"
+			chunk_entity.properties["classname"] = _worldspawn_geo_entity_name
 
 			for chunk_brush in chunk_bucket[chunk]:
 				chunk_entity.brushes.append(chunk_brush)

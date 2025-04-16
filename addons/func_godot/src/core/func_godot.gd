@@ -15,8 +15,8 @@ var surface_gatherer:= FuncGodotSurfaceGatherer.new(map_data, map_settings)
 func load_map(filename: String, keep_tb_groups: bool) -> void:
 	map_parser.load_map(filename, keep_tb_groups)
 '''
-func load_map(filename: String, keep_tb_groups: bool, chunk_worldspawn_geo: bool, worldspawn_geo_chunk_size: int) -> void:
-	map_parser.load_map(filename, keep_tb_groups, chunk_worldspawn_geo, worldspawn_geo_chunk_size)
+func load_map(filename: String, keep_tb_groups: bool, chunk_worldspawn_geo: bool, worldspawn_geo_chunk_size: int, worldspawn_geo_entity_name: String) -> void:
+	map_parser.load_map(filename, keep_tb_groups, chunk_worldspawn_geo, worldspawn_geo_chunk_size, worldspawn_geo_entity_name)
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
 
 func get_texture_list() -> PackedStringArray:

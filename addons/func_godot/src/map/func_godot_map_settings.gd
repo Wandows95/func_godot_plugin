@@ -27,6 +27,8 @@ var scale_factor: float = 0.03125
 @export var chunk_worldspawn_geo: bool = true
 
 @export var worldspawn_geo_chunk_size: int = 512
+
+@export var worldspawn_geo_entity_name: String = "func_geo"
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
 
 @export_category("Textures")
