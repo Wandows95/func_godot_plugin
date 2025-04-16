@@ -291,7 +291,7 @@ func token(buf_str: String) -> void:
 func commit_entity() -> void:
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
 # if current_entity.properties.has('_tb_type') and map_data.entities.size() > 0:
-#### TASTYSPLEEN_CLASS 4/15/2025 ####
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
 	if !_chunk_worldspawn_geo and current_entity.properties.has('_tb_type') and map_data.entities.size() > 0:
 		map_data.entities[0].brushes.append_array(current_entity.brushes)
 		current_entity.brushes.clear()
@@ -303,7 +303,7 @@ func commit_entity() -> void:
 	new_entity.spawn_type = FuncGodotMapData.FuncGodotEntitySpawnType.ENTITY
 	new_entity.properties = current_entity.properties
 
-#### TASTYSPLEEN_CLASS 4/15/2025 ####
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
 	'''
 	new_entity.brushes = current_entity.brushes
 	'''
@@ -318,11 +318,11 @@ func commit_entity() -> void:
 
 	if !is_worldspawn or !_chunk_worldspawn_geo:
 		new_entity.brushes = current_entity.brushes
-#### TASTYSPLEEN_CLASS 4/15/2025 ####
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
 
 	map_data.entities.append(new_entity)
 
-#### TASTYSPLEEN_CLASS 4/15/2025 ####
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
 	if is_worldspawn and _chunk_worldspawn_geo:
 		var chunk_bucket : Dictionary = {}
 
@@ -355,7 +355,7 @@ func commit_entity() -> void:
 				chunk_entity.brushes.append(chunk_brush)
 
 			map_data.entities.append(chunk_entity)
-#### TASTYSPLEEN_CLASS 4/15/2025 ####
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
 	
 	current_entity = FuncGodotMapData.FuncGodotEntity.new()
 	
