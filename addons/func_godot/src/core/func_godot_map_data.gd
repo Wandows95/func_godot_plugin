@@ -136,6 +136,21 @@ class FuncGodotBrush:
 		return Vector3(x/(num_points), y/(num_points), z/(num_points))
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
 
+#### TASTYSPLEEN_REKI 4/16/2025 ####
+	func find_contentbits(map_data : FuncGodotMapData, material_defs : Dictionary) -> int:
+		var cbits : int = 0x00000000
+		var match_found : bool = false
+		for face in faces:
+			var tex_name = map_data.textures[face.texture_idx].name
+			if (tex_name not in material_defs):
+				continue
+			match_found = true
+			cbits |= int(material_defs[tex_name].contentbits)
+		if (match_found):
+			return cbits
+		return 0xFFFFFFF
+#### TASTYSPLEEN_REKI 4/16/2025 ####
+
 class FuncGodotEntity:
 	var properties: Dictionary
 	var brushes: Array[FuncGodotBrush]

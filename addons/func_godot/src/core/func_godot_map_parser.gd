@@ -23,6 +23,14 @@ var _worldspawn_geo_chunk_size: int = 512
 var _worldspawn_geo_entity_name: String = ""
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####	
 
+#### TASTYSPLEEN_REKI 4/17/20205 ####
+class MaterialProperties:
+	var contentbits : int = 0x0
+	var isvisible : bool = false
+	pass
+
+var _json_materials : Dictionary = {}
+#### TASTYSPLEEN_REKI 4/17/20205 ####
 
 func _init(in_map_data: FuncGodotMapData) -> void:
 	map_data = in_map_data
@@ -39,6 +47,8 @@ func load_map(map_file: String, keep_tb_groups: bool, chunk_worldspawn_geo: bool
 	current_face = FuncGodotMapData.FuncGodotFace.new()
 	current_brush = FuncGodotMapData.FuncGodotBrush.new()
 	current_entity = FuncGodotMapData.FuncGodotEntity.new()
+
+	load_material_flags()
 	
 	scope = FuncGodotMapParser.ParseScope.FILE
 	comment = false
@@ -290,7 +300,68 @@ func token(buf_str: String) -> void:
 			commit_face()
 			set_scope(FuncGodotMapParser.ParseScope.BRUSH)
 				
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+func load_material_flags():
+	var json_string : String = "
+	{
+		\"dev/dev_playerclip\": {
+			\"invisible\": true,
+			\"clip_player\": true,
+			\"parent\": \"\"
+		},
+		\"dev/dev_noclip\": {
+			\"invisible\": true,
+			\"clip_misc\": false,
+			\"parent\": \"\"
+		},
+		\"dev_weapon_and_player_clip\": {
+			\"invisible\": true,
+			\"clip_player\": true,
+			\"clip_weapon\": true,
+			\"parent\": \"\"
+		}
+	}"
+
+	var flag_json = JSON.new()
+	var error = flag_json.parse(json_string)
+	
+	if error != OK:
+		print("JSON Parse Error: ", flag_json.get_error_message(), " in ", json_string, " at line ", flag_json.get_error_line())
+		return
+
+	for key in flag_json.data.keys():
+		_json_materials[key] = build_material_clip_flags(flag_json.data[key])
+
+func build_material_clip_flags(flag_dict: Dictionary) -> MaterialProperties:
+	var mat_definition : MaterialProperties = MaterialProperties.new()
+	var clip_master_list: Array[String] = ["clip_player", "clip_weapon", "clip_misc"]
+	var clip_flag_mask: int = 0xFFFFFFF
+	var clip_uninitialized: bool = true
+
+	for idx in clip_master_list.size():
+		if !(clip_master_list[idx] in flag_dict):
+			continue
+		if (clip_uninitialized):
+			clip_uninitialized = false
+			clip_flag_mask = 0x0000000
+		
+		var flag: bool = flag_dict[clip_master_list[idx]]
+		clip_flag_mask |= int(flag) << idx
+	mat_definition.contentbits = clip_flag_mask
+
+	if ("invisible" in flag_dict):
+		mat_definition.isvisible = !bool(flag_dict["invisible"])
+
+	if (!mat_definition.isvisible):
+		pass
+
+	return mat_definition
+
+
+#### TASTYSPLEEN_CLASSY 4/15/2025 ####
+
 func commit_entity() -> void:
+	#print("resulting material clip dict " + str(dickt))
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
 # if current_entity.properties.has('_tb_type') and map_data.entities.size() > 0:
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
@@ -304,6 +375,8 @@ func commit_entity() -> void:
 	var new_entity:= FuncGodotMapData.FuncGodotEntity.new()
 	new_entity.spawn_type = FuncGodotMapData.FuncGodotEntitySpawnType.ENTITY
 	new_entity.properties = current_entity.properties
+
+	
 
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
 	'''
@@ -332,19 +405,21 @@ func commit_entity() -> void:
 		for brush in current_entity.brushes:
 			var found_bucket : bool = false
 			var brush_center : Vector3 = brush.find_center_naive()
+			var brush_flags : int = brush.find_contentbits(map_data, _json_materials)
 			# Determine which chunk this brush will be in
 			var chunk_x = int(brush_center.x/_worldspawn_geo_chunk_size)
 			var chunk_y = int(brush_center.y/_worldspawn_geo_chunk_size)
+			var chunk_content = brush_flags
 			# Iterate over chunks
 			for chunk in chunk_bucket:
 				# Check if brush should be in chunk
-				if chunk[0] == chunk_x and chunk[1] == chunk_y:
+				if (chunk[0] == chunk_x) and (chunk[1] == chunk_y) and (chunk[2] == chunk_content):
 					chunk_bucket[chunk].append(brush)
 					found_bucket = true
 					break
 				# If no chunk found, make a new one
 			if !found_bucket:
-				chunk_bucket[[chunk_x, chunk_y]] = [brush]
+				chunk_bucket[[chunk_x, chunk_y, chunk_content]] = [brush]
 			found_bucket = false
 
 		# Convert chunk bucket into entities
@@ -352,6 +427,7 @@ func commit_entity() -> void:
 			var chunk_entity:= FuncGodotMapData.FuncGodotEntity.new()
 			chunk_entity.spawn_type = FuncGodotMapData.FuncGodotEntitySpawnType.ENTITY
 			chunk_entity.properties["classname"] = _worldspawn_geo_entity_name
+			chunk_entity.properties["contentbits"] = chunk[2]
 
 			for chunk_brush in chunk_bucket[chunk]:
 				chunk_entity.brushes.append(chunk_brush)

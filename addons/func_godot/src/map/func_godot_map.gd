@@ -430,6 +430,11 @@ func build_entity_nodes() -> Array:
 						continue
 					if entity_definition.node_class != "":
 						node = ClassDB.instantiate(entity_definition.node_class)
+						#### TASTYSPLEEN_REKI 4/17/25 ####
+						if (ClassDB.is_parent_class(entity_definition.node_class, "CollisionObject3D")):
+							if ("contentbits" in properties):
+								(node as CollisionObject3D).collision_layer = properties["contentbits"]
+						#### TASTYSPLEEN_REKI 4/17/25 ####
 				elif entity_definition is FuncGodotFGDPointClass:
 					if entity_definition.scene_file:
 						var flag: PackedScene.GenEditState = PackedScene.GEN_EDIT_STATE_DISABLED
@@ -521,6 +526,14 @@ func build_entity_collision_shape_nodes() -> Array:
 		
 		var entity_dict: Dictionary = entity_dicts[entity_idx]
 		var properties: Dictionary = entity_dict['properties']
+
+		#### TASTYSPLEEN_REKI 4/17/25 ###
+		# FIXME: THIS SHIT IS BAD, WE NEED TO ALLOW ENTS TO OVERRIDE COLLISION LAYERS
+		if ("contentbits" in properties):
+			if (int(properties["contentbits"]) == 0x0):
+				entity_collision_shapes_arr.append(null)
+				continue
+		#### TASTYSPLEEN_REKI 4/17/25 ###
 		
 		var node: Node = entity_nodes[entity_idx] as Node
 		var concave: bool = false
@@ -541,7 +554,12 @@ func build_entity_collision_shape_nodes() -> Array:
 						node = entity_nodes[0] as Node
 					
 					if node and node is CollisionObject3D:
-						(node as CollisionObject3D).collision_layer = entity_definition.collision_layer
+						#### TASTYSPLEEN_REKI 4/17/25 ###
+						# FIXME: THIS SHIT IS BAD, WE NEED TO ALLOW ENTS TO OVERRIDE COLLISION LAYERS
+						if ("contentbits" not in properties):
+							(node as CollisionObject3D).collision_layer = entity_definition.collision_layer
+						#### TASTYSPLEEN_REKI 4/17/25 ###
+						
 						(node as CollisionObject3D).collision_mask = entity_definition.collision_mask
 						(node as CollisionObject3D).collision_priority = entity_definition.collision_priority
 		
