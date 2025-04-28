@@ -29,6 +29,9 @@ var scale_factor: float = 0.03125
 @export var worldspawn_geo_chunk_size: int = 512
 
 @export var worldspawn_geo_entity_name: String = "func_geo"
+
+@export var generate_arrayed_materials: bool = true
+@export var generated_assets_parent_directory: String = "maps/generated"
 #### TASTYSPLEEN_CLASSY 4/15/2025 ####
 
 @export_category("Textures")
