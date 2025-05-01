@@ -1014,6 +1014,7 @@ func delete_directory_contents(directory: String):
 func process_mesh(mesh: ArrayMesh):
 	var albedos: Array[Texture2D] = extract_mesh_albedos(mesh)
 	var mesh_texture_arrays: Array[Texture2DArray] = []
+
 	# Texture array : surface
 	var new_surfs: Dictionary = {}
 
@@ -1025,7 +1026,7 @@ func process_mesh(mesh: ArrayMesh):
 			mesh_texture_arrays.append(texture_array)
 		
 
-	# Setup surface arrays for each resolution
+	# Setup surface arrays for texture_array
 	for texture_array in mesh_texture_arrays:
 		new_surfs[texture_array] = []
 		new_surfs[texture_array].resize(Mesh.ARRAY_MAX)
@@ -1035,7 +1036,7 @@ func process_mesh(mesh: ArrayMesh):
 		var surface: Array = mesh.surface_get_arrays(surf_idx)
 
 		var albedo: Texture2D = extract_surface_albedo(mesh.surface_get_material(surf_idx))
-		# Surfaces grouped by texture array surface belongs to
+		# Surfaces are grouped by texture array surface belongs to
 		var surface_texture_array: Texture2DArray = albedo_texture_array_lookup[albedo]
 
 		'''
@@ -1075,8 +1076,8 @@ func process_mesh(mesh: ArrayMesh):
 		
 		if surface[Mesh.ARRAY_TEX_UV]:
 			if !new_surfs[surface_texture_array][Mesh.ARRAY_TEX_UV]:
-				# Vec3 array to account for texture index
 				new_surfs[surface_texture_array][Mesh.ARRAY_TEX_UV] = PackedVector2Array()
+
 			new_surfs[surface_texture_array][Mesh.ARRAY_TEX_UV].append_array(surface[Mesh.ARRAY_TEX_UV])
 
 		if !new_surfs[surface_texture_array][Mesh.ARRAY_CUSTOM0]:
@@ -1086,11 +1087,13 @@ func process_mesh(mesh: ArrayMesh):
 		for vert in surface[Mesh.ARRAY_VERTEX]:
 			new_surfs[surface_texture_array][Mesh.ARRAY_CUSTOM0].append(albedo_index_lookup[albedo])
 
+	# Destroy surfaces present on the mesh
 	obliterate_surfaces(mesh)
 
 	var format = Mesh.ARRAY_FORMAT_CUSTOM0
 	format |= (Mesh.ARRAY_CUSTOM_R_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
 
+	# Rebuild surfaces on mesh, utilizing their corresponding texture array
 	var mat_name_append_num: int = 0
 	for texture_array in new_surfs:
 		var mat: Material = construct_surface_material(texture_array)
