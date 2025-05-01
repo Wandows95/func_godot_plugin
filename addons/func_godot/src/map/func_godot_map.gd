@@ -58,6 +58,12 @@ var entity_nodes: Array = []
 var entity_mesh_instances: Dictionary = {}
 var entity_occluder_instances: Dictionary = {}
 var entity_collision_shapes: Array = []
+#### TASTYSPLEEN_CLASSY 4/25/2025 ####
+var albedo_resolution_buckets: Dictionary = {}
+var albedo_texture_array_lookup: Dictionary = {}
+var albedo_index_lookup: Dictionary = {}
+var texture_arrays: Array[Texture2DArray] = []
+#### TASTYSPLEEN_CLASSY 4/25/2025 ####
 
 # Utility
 ## Verify that FuncGodot is functioning and that [member map_file] exists. If so, build the map. If not, signal [signal build_failed]
@@ -864,7 +870,7 @@ func categorize_albedo_resolutions(albedos: Array[Texture2D]) -> Dictionary:
 	return albedo_res_dict
 
 # Extract albedo textures from all surfaces on the mesh
-func extract_surface_albedos(mesh: ArrayMesh) -> Array[Texture2D]:
+func extract_mesh_albedos(mesh: ArrayMesh) -> Array[Texture2D]:
 	var albedos:Array[Texture2D] = []
 
 	for surface_idx in range(0, mesh.get_surface_count()):
@@ -877,29 +883,54 @@ func extract_surface_albedos(mesh: ArrayMesh) -> Array[Texture2D]:
 	
 	return albedos
 
-# Expected to ingest dictionary from categorize_albedo_resolutions
-# [ { albedo_texture : index of texture IN Texture2DArray} , { [width, height] : Texture2DArray }]
-func build_texture_arrays(texture_dict: Dictionary) -> Array:
-	# resolution : texture_array
+func build_texture_arrays(albedo_res_dict: Dictionary) -> void:
 	var texture_array_bucket: Dictionary = {}
-	# texture : index INSIDE of texture_array
-	var albedo_array_lookup: Dictionary = {}
+	# 2D array of textures to be converted into texture2d arrays
+	var texture_bucket: Array = []
 
-	for res in texture_dict:
-		var images: Array[Image] = []
-		for texture in texture_dict[res]:
+	# For each resolution bucket
+	for res in albedo_res_dict:
+		var current_resolution: Vector2i = Vector2i(0,0)
+		texture_bucket.append([])
+
+		# For each texture in current resolution bucket
+		for texture in albedo_res_dict[res]:
+			# If current bucket is too large
+			if ((current_resolution.x + texture.get_width() > 10420) or 
+				(current_resolution.y + texture.get_height() > 10420)):
+					# Reset resolution counter
+					current_resolution = Vector2i(0, 0)
+					# Create a new bucket
+					texture_bucket.append([])
+
+			# Add texture to bucket
+			texture_bucket[texture_bucket.size()-1].append(texture)
+			current_resolution.x += texture.get_width()
+			current_resolution.y += texture.get_height()
+	
+	# For each texture bucket
+	for bucket in texture_bucket:
+		var bucket_images: Array[Image] = []
+
+		# For each texture in bucket
+		for texture in bucket:
 			var image: Image = texture.get_image()
-
+			
 			if image.is_compressed():
 				image.decompress()
+			
+			bucket_images.append(image)
 
-			images.append(image)
-			albedo_array_lookup[texture] = images.size() - 1
+			# Set texture array lookup for this texture
+			albedo_index_lookup[texture] = (bucket_images.size()-1)
+		
+		# Create new texture array and create it from the bucket
+		texture_arrays.append(Texture2DArray.new())
+		texture_arrays[texture_arrays.size()-1].create_from_images(bucket_images)
 
-		texture_array_bucket[res] = Texture2DArray.new()
-		texture_array_bucket[res].create_from_images(images) 
-	
-	return [albedo_array_lookup, texture_array_bucket]
+		# Build texture => Texture2DArray lookup
+		for texture in bucket:
+			albedo_texture_array_lookup[texture] = texture_arrays[texture_arrays.size()-1]
 
 func get_map_name() -> String:
 	return "Badblock"
@@ -929,18 +960,17 @@ func try_make_generated_materials_save_dir():
 	if not DirAccess.dir_exists_absolute(get_generated_material_save_dir()):
 		DirAccess.make_dir_absolute(get_generated_material_save_dir())
 
-func save_generated_texture_arrays(texture_array_bucket: Dictionary):
+func save_generated_texture_arrays(texture_array_bucket: Array[Texture2DArray]):
 	var number: int = 0
 	
 	try_make_generated_texture_array_save_dir()
 
-	for bucket in texture_array_bucket:
-		var texture_array: Texture2DArray = texture_array_bucket[bucket]
+	for texture_array in texture_array_bucket:
 		var new_resource_path: String = get_generated_texture_array_save_path(number)
 
 		var save_err: Error = ResourceSaver.save(texture_array, new_resource_path)
 		if save_err != OK:
-			print("Failed to save texture array for " + str(bucket) + ": " + str(save_err))
+			print("Failed to save texture array for " + str(texture_array) + ": " + str(save_err))
 		else:
 			# Forcibly update path because godot is stupid and reverts it EVEN WITH FLAG_UPDATE_PATH :(
 			texture_array.set_path(new_resource_path)
@@ -982,15 +1012,93 @@ func delete_directory_contents(directory: String):
 		DirAccess.remove_absolute(directory.path_join(file_name))
 
 func process_mesh(mesh: ArrayMesh):
-	var albedos: Array[Texture2D] = extract_surface_albedos(mesh)
-	var albedo_res_dict: Dictionary = categorize_albedo_resolutions(albedos)
-	var arrays_and_lookup: Array = build_texture_arrays(albedo_res_dict)
+	var albedos: Array[Texture2D] = extract_mesh_albedos(mesh)
+	var mesh_texture_arrays: Array[Texture2DArray] = []
+	# Texture array : surface
+	var new_surfs: Dictionary = {}
 
-	var albedo_lookup: Dictionary = arrays_and_lookup[0]
-	var texture_arrays: Dictionary = arrays_and_lookup[1]
+	# Gather all unique texture arrays present in the mesh
+	for albedo in albedos:
+		var texture_array: Texture2DArray = albedo_texture_array_lookup[albedo]
 
-	save_generated_texture_arrays(texture_arrays)
-	construct_surfaces(mesh, texture_arrays, albedo_lookup)
+		if texture_array not in mesh_texture_arrays:
+			mesh_texture_arrays.append(texture_array)
+		
+
+	# Setup surface arrays for each resolution
+	for texture_array in mesh_texture_arrays:
+		new_surfs[texture_array] = []
+		new_surfs[texture_array].resize(Mesh.ARRAY_MAX)
+
+	# Build new surfaces
+	for surf_idx in range(0, mesh.get_surface_count()):
+		var surface: Array = mesh.surface_get_arrays(surf_idx)
+
+		var albedo: Texture2D = extract_surface_albedo(mesh.surface_get_material(surf_idx))
+		# Surfaces grouped by texture array surface belongs to
+		var surface_texture_array: Texture2DArray = albedo_texture_array_lookup[albedo]
+
+		'''
+		Reference for layout used by func_godot
+		* brush_array[Mesh.ARRAY_VERTEX] = vertices
+		* brush_array[Mesh.ARRAY_NORMAL] = normals
+		* brush_array[Mesh.ARRAY_TANGENT] = tangents
+		* brush_array[Mesh.ARRAY_TEX_UV] = uvs
+		* brush_array[Mesh.ARRAY_INDEX] = indices
+		'''
+
+		if surface[Mesh.ARRAY_INDEX]:
+			if !new_surfs[surface_texture_array][Mesh.ARRAY_INDEX]:
+				new_surfs[surface_texture_array][Mesh.ARRAY_INDEX] = PackedInt32Array()
+			
+			# Shift indices if there are vertices for this surface
+			if new_surfs[surface_texture_array][Mesh.ARRAY_VERTEX]:
+				for i in range(0, surface[Mesh.ARRAY_INDEX].size()):
+					surface[Mesh.ARRAY_INDEX][i] = surface[Mesh.ARRAY_INDEX][i] + new_surfs[surface_texture_array][Mesh.ARRAY_VERTEX].size()
+			new_surfs[surface_texture_array][Mesh.ARRAY_INDEX].append_array(surface[Mesh.ARRAY_INDEX])
+
+		if surface[Mesh.ARRAY_VERTEX]:
+			if !new_surfs[surface_texture_array][Mesh.ARRAY_VERTEX]:
+				new_surfs[surface_texture_array][Mesh.ARRAY_VERTEX] = PackedVector3Array()
+
+			new_surfs[surface_texture_array][Mesh.ARRAY_VERTEX].append_array(surface[Mesh.ARRAY_VERTEX])
+		
+		if surface[Mesh.ARRAY_NORMAL]:
+			if !new_surfs[surface_texture_array][Mesh.ARRAY_NORMAL]:
+				new_surfs[surface_texture_array][Mesh.ARRAY_NORMAL] = PackedVector3Array()
+			new_surfs[surface_texture_array][Mesh.ARRAY_NORMAL].append_array(surface[Mesh.ARRAY_NORMAL])
+			
+		if surface[Mesh.ARRAY_TANGENT]:
+			if !new_surfs[surface_texture_array][Mesh.ARRAY_TANGENT]: 
+				new_surfs[surface_texture_array][Mesh.ARRAY_TANGENT] = PackedFloat32Array()
+			new_surfs[surface_texture_array][Mesh.ARRAY_TANGENT].append_array(surface[Mesh.ARRAY_TANGENT])
+		
+		if surface[Mesh.ARRAY_TEX_UV]:
+			if !new_surfs[surface_texture_array][Mesh.ARRAY_TEX_UV]:
+				# Vec3 array to account for texture index
+				new_surfs[surface_texture_array][Mesh.ARRAY_TEX_UV] = PackedVector2Array()
+			new_surfs[surface_texture_array][Mesh.ARRAY_TEX_UV].append_array(surface[Mesh.ARRAY_TEX_UV])
+
+		if !new_surfs[surface_texture_array][Mesh.ARRAY_CUSTOM0]:
+			new_surfs[surface_texture_array][Mesh.ARRAY_CUSTOM0] = PackedFloat32Array()
+
+		# Custom UV channel for texture array lookup
+		for vert in surface[Mesh.ARRAY_VERTEX]:
+			new_surfs[surface_texture_array][Mesh.ARRAY_CUSTOM0].append(albedo_index_lookup[albedo])
+
+	obliterate_surfaces(mesh)
+
+	var format = Mesh.ARRAY_FORMAT_CUSTOM0
+	format |= (Mesh.ARRAY_CUSTOM_R_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
+
+	var mat_name_append_num: int = 0
+	for texture_array in new_surfs:
+		var mat: Material = construct_surface_material(texture_array)
+		save_generated_material(mat, mat_name_append_num)
+		mat_name_append_num += 1
+		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, new_surfs[texture_array], [], {}, format)
+		mesh.surface_set_name(mesh.get_surface_count() - 1, str(texture_array))
+		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
 
 func extract_surface_albedo(mat: Material) -> Texture2D: 
 	if mat is BaseMaterial3D:
@@ -1013,84 +1121,6 @@ func construct_surface_material(albedo: Texture2DArray) -> Material:
 		material.set_shader_parameter(map_settings.default_material_albedo_uniform, albedo)
 	
 	return material
-
-func construct_surfaces(mesh: ArrayMesh, texture_arrays: Dictionary, albedo_lookup: Dictionary):
-	var new_surfs: Dictionary = {}
-
-	# Setup surface arrays for each resolution
-	for res in texture_arrays:
-		new_surfs[res] = []
-		new_surfs[res].resize(Mesh.ARRAY_MAX)
-
-	# Build new surfaces
-	for surf_idx in range(0, mesh.get_surface_count()):
-		var surface: Array = mesh.surface_get_arrays(surf_idx)
-
-		var albedo: Texture2D = extract_surface_albedo(mesh.surface_get_material(surf_idx))
-		# Surfaces are grouped by texture resolution
-		var albedo_res: Array = [albedo.get_width(), albedo.get_height()]
-		
-		'''
-		Reference for layout used by func_godot
-		* brush_array[Mesh.ARRAY_VERTEX] = vertices
-		* brush_array[Mesh.ARRAY_NORMAL] = normals
-		* brush_array[Mesh.ARRAY_TANGENT] = tangents
-		* brush_array[Mesh.ARRAY_TEX_UV] = uvs
-		* brush_array[Mesh.ARRAY_INDEX] = indices
-		'''
-
-		if surface[Mesh.ARRAY_INDEX]:
-			if !new_surfs[albedo_res][Mesh.ARRAY_INDEX]:
-				new_surfs[albedo_res][Mesh.ARRAY_INDEX] = PackedInt32Array()
-			
-			# Shift indices if there are vertices for this surface
-			if new_surfs[albedo_res][Mesh.ARRAY_VERTEX]:
-				for i in range(0, surface[Mesh.ARRAY_INDEX].size()):
-					surface[Mesh.ARRAY_INDEX][i] = surface[Mesh.ARRAY_INDEX][i] + new_surfs[albedo_res][Mesh.ARRAY_VERTEX].size()
-			new_surfs[albedo_res][Mesh.ARRAY_INDEX].append_array(surface[Mesh.ARRAY_INDEX])
-
-		if surface[Mesh.ARRAY_VERTEX]:
-			if !new_surfs[albedo_res][Mesh.ARRAY_VERTEX]:
-				new_surfs[albedo_res][Mesh.ARRAY_VERTEX] = PackedVector3Array()
-
-			new_surfs[albedo_res][Mesh.ARRAY_VERTEX].append_array(surface[Mesh.ARRAY_VERTEX])
-		
-		if surface[Mesh.ARRAY_NORMAL]:
-			if !new_surfs[albedo_res][Mesh.ARRAY_NORMAL]:
-				new_surfs[albedo_res][Mesh.ARRAY_NORMAL] = PackedVector3Array()
-			new_surfs[albedo_res][Mesh.ARRAY_NORMAL].append_array(surface[Mesh.ARRAY_NORMAL])
-			
-		if surface[Mesh.ARRAY_TANGENT]:
-			if !new_surfs[albedo_res][Mesh.ARRAY_TANGENT]: 
-				new_surfs[albedo_res][Mesh.ARRAY_TANGENT] = PackedFloat32Array()
-			new_surfs[albedo_res][Mesh.ARRAY_TANGENT].append_array(surface[Mesh.ARRAY_TANGENT])
-		
-		if surface[Mesh.ARRAY_TEX_UV]:
-			if !new_surfs[albedo_res][Mesh.ARRAY_TEX_UV]:
-				# Vec3 array to account for texture index
-				new_surfs[albedo_res][Mesh.ARRAY_TEX_UV] = PackedVector2Array()
-			new_surfs[albedo_res][Mesh.ARRAY_TEX_UV].append_array(surface[Mesh.ARRAY_TEX_UV])
-
-		if !new_surfs[albedo_res][Mesh.ARRAY_CUSTOM0]:
-			new_surfs[albedo_res][Mesh.ARRAY_CUSTOM0] = PackedFloat32Array()
-
-		# Custom UV channel for texture array lookup
-		for vert in surface[Mesh.ARRAY_VERTEX]:
-			new_surfs[albedo_res][Mesh.ARRAY_CUSTOM0].append(albedo_lookup[albedo])
-
-	obliterate_surfaces(mesh)
-
-	var format = Mesh.ARRAY_FORMAT_CUSTOM0
-	format |= (Mesh.ARRAY_CUSTOM_R_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
-
-	var mat_name_append_num: int = 0
-	for albedo_res in new_surfs:
-		var mat: Material = construct_surface_material(texture_arrays[albedo_res])
-		save_generated_material(mat, mat_name_append_num)
-		mat_name_append_num += 1
-		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, new_surfs[albedo_res], [], {}, format)
-		mesh.surface_set_name(mesh.get_surface_count() - 1, str(albedo_res))
-		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
 #### TASTYSPLEEN_CLASSY 4/24/2025 ####
 
 ## Assign [ArrayMesh]es to their [MeshInstance3D] counterparts
@@ -1099,6 +1129,17 @@ func apply_entity_meshes() -> void:
 	if map_settings.generate_arrayed_materials:
 		delete_generated_texture_arrays()
 		delete_generated_materials()
+
+		albedo_resolution_buckets = {}
+		albedo_texture_array_lookup = {}
+		albedo_index_lookup = {}
+		texture_arrays = []
+
+		var albedos: Array[Texture2D] = []
+		albedos.assign(texture_dict.values())
+		albedo_resolution_buckets = categorize_albedo_resolutions(albedos)
+		build_texture_arrays(albedo_resolution_buckets)
+		save_generated_texture_arrays(texture_arrays)
 	#### TASTYSPLEEN_CLASSY 4/26/2025 ####
 
 	for entity_idx in entity_mesh_instances:
