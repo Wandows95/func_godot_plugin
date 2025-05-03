@@ -863,7 +863,8 @@ func categorize_albedo_resolutions(albedos: Array[Texture2D]) -> Dictionary:
 
 	for albedo in albedos:
 		if albedo_res_dict.has([albedo.get_width(), albedo.get_height()]):
-			albedo_res_dict[[albedo.get_width(), albedo.get_height()]].append(albedo)
+			if albedo not in albedo_res_dict[[albedo.get_width(), albedo.get_height()]]:
+				albedo_res_dict[[albedo.get_width(), albedo.get_height()]].append(albedo)
 		else:
 			albedo_res_dict[[albedo.get_width(), albedo.get_height()]] = [albedo]
 	
@@ -938,8 +939,8 @@ func get_map_name() -> String:
 func get_generated_texture_array_save_dir() -> String:
 	return "res://" + map_settings.generated_assets_parent_directory + "/" + get_map_name() + "/TextureArrays/"
 
-func get_generated_texture_array_save_path(append_num: int) -> String:
-	return get_generated_texture_array_save_dir() + str(Time.get_ticks_msec()) + str(Time.get_ticks_usec()) + "_" + str(append_num) + ".tres"
+func get_generated_texture_array_save_path(append_num: int, texture_array: Texture2DArray) -> String:
+	return get_generated_texture_array_save_dir() + str(texture_array.get_width()) + "x" + str(texture_array.get_height()) + "_"  + str(Time.get_ticks_msec()) + str(Time.get_ticks_usec()) + "_" + str(append_num) + ".tres"
 
 func try_make_generate_asset_save_dir():
 	if not DirAccess.dir_exists_absolute("res://" + map_settings.generated_assets_parent_directory):
@@ -966,8 +967,8 @@ func save_generated_texture_arrays(texture_array_bucket: Array[Texture2DArray]):
 	try_make_generated_texture_array_save_dir()
 
 	for texture_array in texture_array_bucket:
-		var new_resource_path: String = get_generated_texture_array_save_path(number)
-
+		var new_resource_path: String = get_generated_texture_array_save_path(number, texture_array)
+		
 		var save_err: Error = ResourceSaver.save(texture_array, new_resource_path)
 		if save_err != OK:
 			print("Failed to save texture array for " + str(texture_array) + ": " + str(save_err))
@@ -1100,7 +1101,7 @@ func process_mesh(mesh: ArrayMesh):
 		save_generated_material(mat, mat_name_append_num)
 		mat_name_append_num += 1
 		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, new_surfs[texture_array], [], {}, format)
-		mesh.surface_set_name(mesh.get_surface_count() - 1, str(texture_array))
+		mesh.surface_set_name(mesh.get_surface_count() - 1, texture_array.resource_path)
 		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
 
 func extract_surface_albedo(mat: Material) -> Texture2D: 
