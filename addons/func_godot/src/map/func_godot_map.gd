@@ -862,11 +862,12 @@ func categorize_albedo_resolutions(albedos: Array[Texture2D]) -> Dictionary:
 	var albedo_res_dict: Dictionary = {}
 
 	for albedo in albedos:
-		if albedo_res_dict.has([albedo.get_width(), albedo.get_height()]):
-			if albedo not in albedo_res_dict[[albedo.get_width(), albedo.get_height()]]:
-				albedo_res_dict[[albedo.get_width(), albedo.get_height()]].append(albedo)
+		var format: int = albedo.get_image().get_format()
+		if albedo_res_dict.has([albedo.get_width(), albedo.get_height(), format]):
+			if albedo not in albedo_res_dict[[albedo.get_width(), albedo.get_height(), format]]:
+				albedo_res_dict[[albedo.get_width(), albedo.get_height(), format]].append(albedo)
 		else:
-			albedo_res_dict[[albedo.get_width(), albedo.get_height()]] = [albedo]
+			albedo_res_dict[[albedo.get_width(), albedo.get_height(), format]] = [albedo]
 	
 	return albedo_res_dict
 
@@ -919,6 +920,9 @@ func build_texture_arrays(albedo_res_dict: Dictionary) -> void:
 			
 			if image.is_compressed():
 				image.decompress()
+
+			image.clear_mipmaps()
+			image.generate_mipmaps()
 			
 			bucket_images.append(image)
 
@@ -940,7 +944,7 @@ func get_generated_texture_array_save_dir() -> String:
 	return "res://" + map_settings.generated_assets_parent_directory + "/" + get_map_name() + "/TextureArrays/"
 
 func get_generated_texture_array_save_path(append_num: int, texture_array: Texture2DArray) -> String:
-	return get_generated_texture_array_save_dir() + str(texture_array.get_width()) + "x" + str(texture_array.get_height()) + "_"  + str(Time.get_ticks_msec()) + str(Time.get_ticks_usec()) + "_" + str(append_num) + ".tres"
+	return get_generated_texture_array_save_dir() + str(texture_array.get_width()) + "x" + str(texture_array.get_height()) + "_" + str(texture_array.get_format()) + "_"  + str(Time.get_ticks_msec()) + str(Time.get_ticks_usec()) + "_" + str(append_num) + ".tres"
 
 func try_make_generate_asset_save_dir():
 	if not DirAccess.dir_exists_absolute("res://" + map_settings.generated_assets_parent_directory):
@@ -1037,6 +1041,9 @@ func process_mesh(mesh: ArrayMesh):
 		var surface: Array = mesh.surface_get_arrays(surf_idx)
 
 		var albedo: Texture2D = extract_surface_albedo(mesh.surface_get_material(surf_idx))
+		if albedo == null:
+			print("Null albedo, skipping surface: " + str(mesh) + " | " + str(mesh.surface_get_material(surf_idx)) + " | " + str(surf_idx) + " | " + str(albedo))
+			continue
 		# Surfaces are grouped by texture array surface belongs to
 		var surface_texture_array: Texture2DArray = albedo_texture_array_lookup[albedo]
 

@@ -138,9 +138,16 @@ func create_material(texture_name: String) -> Material:
 	else:
 		material = StandardMaterial3D.new()
 	var texture: Texture2D = load_texture(texture_name)
+	#### TASTYSPLEEN_CLASSY 5/7/2025 ####
+	'''
 	if not texture:
+		print("I cant load texture " + texture_name)
 		return material
-	
+	'''
+	if not texture:
+		printerr("Unable to load texture " + texture_name)
+		return material
+	#### TASTYSPLEEN_CLASSY 5/7/2025 ####
 	if material is StandardMaterial3D:
 		material.set_texture(StandardMaterial3D.TEXTURE_ALBEDO, texture)
 	elif material is ShaderMaterial && map_settings.default_material_albedo_uniform != "":
@@ -180,8 +187,13 @@ func create_material(texture_name: String) -> Material:
 	and texture_name != map_settings.clip_texture 
 	and texture_name != map_settings.skip_texture 
 	'''
-#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+
+	'''
 	if (map_settings.save_generated_materials and material 
+	'''
+#### TASTYSPLEEN_CLASSY 4/10/2025 ####
+	if (map_settings.save_generated_materials 
+		and not map_settings.generate_arrayed_materials and material 
 		and map_settings.clip_texture_list.count(texture_name) == 0
 		and map_settings.skip_texture_list.count(texture_name) == 0
 		and texture.resource_path != "res://addons/func_godot/textures/default_texture.png"):
